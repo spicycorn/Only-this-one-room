@@ -49,27 +49,27 @@
 
 ---
 
-## 安装（从 GitHub 拉取）
+## 安装
 
 ```powershell
-# 1) 克隆仓库
-git clone https://github.com/spicycorn/Only-this-one-room.git
-
-# 2) 进入插件目录并安装（仓库根即插件包）
-cd Only-this-one-room
-dsh plugin --profile web add .
-
-# 3) 重启 DSH，进入 设置 → 只此一间
-#    插件加载即"启动"——没有后端要 spawn，没有端口要等。
+dsh plugin --profile web add github:spicycorn/Only-this-one-room
 ```
 
-打开面板后：
+一条命令完成拉取 + 安装 + 依赖解析。安装后重启 DSH，进入 **设置 → 只此一间** 即可使用。
+
+> 插件加载即"启动"——没有后端要 spawn，没有端口要等。
+
+### 首次使用
 
 1. 在「房间与绑定」里点「创建房间」，生成一个房间 Token（`api_token`）。
 2. 把 Token 发给你的另一半，在 TA 的设备上填入（同一界面），即绑定进房。
 3. 在「快速记录」里记一条；在「AI 配置」里填 provider（可选，不填则纯存储）。
 
-> 首次 `dsh plugin add` 之后，DSH 需要重启一次以加载插件（设置页里会出现「只此一间」）。
+### 从本地目录安装（开发 / 调试）
+
+```powershell
+dsh plugin --profile web add <path-to-plugin-dir>
+```
 
 ### 卸载
 
@@ -77,7 +77,7 @@ dsh plugin --profile web add .
 dsh plugin --profile web remove only-room-admin
 ```
 
-> 卸载只移除插件本身；数据目录（SQLite + 媒体）不受影响，重装即恢复。
+> 卸载只移除插件本身；数据目录（`~/.dsh/only-room/`：SQLite + 媒体）不受影响，重装即恢复。
 
 ---
 
@@ -168,7 +168,7 @@ dsh plugin --profile web remove only-room-admin
 ## 目录结构
 
 ```
-Only-this-one-room/           ← 仓库根 = 插件包（dsh plugin add .）
+Only-this-one-room/           ← 仓库根 = 插件包（dsh plugin --profile web add github:spicycorn/Only-this-one-room）
 ├── index.js                  # host half：apply() + RPC 分发 + 媒体路由 + 信任栅栏
 ├── client/client.js          # client half：settings → 只此一间 面板
 ├── lib/
