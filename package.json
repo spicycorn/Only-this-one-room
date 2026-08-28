@@ -1,0 +1,31 @@
+{
+  "name": "only-room-admin",
+  "version": "2.0.0",
+  "description": "只此一间 v2 — DSH Cordis plugin, self-contained: the host half runs the whole app in-process (node:sqlite + business logic + AI gateway + media), the client half renders a settings panel. No separate backend, no ports — RPC over /only-room/api, media over /only-room/media.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ]
+    }
+  },
+  "dependencies": {
+    "schemastery": "^3.18.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "license": "MIT"
+}

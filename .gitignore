@@ -1,0 +1,29 @@
+# Only Room v2 — .gitignore
+
+# Node
+node_modules/
+dist/
+
+# 测试 / 缓存产物
+.tmp/
+
+# 环境配置
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 运行时数据（SQLite + media，默认在 ~/.dsh/only-room/；若 config.dataDir 指到仓库内则忽略）
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Logs
+*.log

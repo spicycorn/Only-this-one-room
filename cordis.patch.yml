@@ -1,0 +1,12 @@
+# only-room-admin bundle patch（机制同已安装的参考实现 dsh-better-sidebar/cordis.patch.yml）。
+# `dsh plugin --profile <name> add ...` / pnpm file: 安装后，本文件随包进入 profile node_modules，
+# DSH 启动时自动并入插件树。
+#
+# 本插件**自包含整个应用**：数据落在 config.dataDir（缺省 ~/.dsh/only-room/）。
+# 不需要 projectRoot（没有独立后端）、不需要 port（没有监听端口）。
+# 换机器 = 把 ~/.dsh/only-room/ 这个目录拷过去即可（SQLite + 媒体）。
+- insert:
+  - id: only-room-admin
+    name: 'only-room-admin'
+    config:
+      dataDir: ''   # 留空 = 默认 ~/.dsh/only-room/；显式填则用该目录
