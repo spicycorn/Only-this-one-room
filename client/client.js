@@ -96,6 +96,7 @@ window.__ModuleLoader__.load({
 			const [quickText, setQuickText] = react.useState("");
 			const [msg, setMsg] = react.useState("");
 			const [newRoomName, setNewRoomName] = react.useState("只此一间");
+			const [joinToken, setJoinToken] = react.useState("");
 			const [provKey, setProvKey] = react.useState("ollama"); // 当前编辑的 provider 键
 			react.useEffect(() => { void refreshAll(); }, []); // eslint-disable-line
 
@@ -106,10 +107,16 @@ window.__ModuleLoader__.load({
 			async function loadStatus() { try { const s = await rpc("status", {}); setProc(s || { status: "unknown" }); } catch { setProc({ status: "unknown" }); } }
 
 			async function loadRoom() {
-				try { const r = await rpc("rooms.my", { clientId: CLIENT_ID }); if (r && r.id) { const roomObj = { id: r.id, name: r.name, members: r.members || [] }; saveToken(r.api_token || getToken()); setRoom(roomObj); return roomObj; } } catch {}
-				try { const r = await rpc("rooms.bind", { clientId: CLIENT_ID }); if (r && r.id) { const roomObj = { id: r.id, name: r.name, members: r.members || [] }; saveToken(r.api_token || getToken()); setRoom(roomObj); return roomObj; } } catch {}
+				// 1) 本设备身份已进房 → 取房间信息（顺带拿权威 token）
+				try { const r = await rpc("rooms.my", { clientId: CLIENT_ID }); if (r && r.id) { saveToken(r.api_token || getToken()); const roomObj = { id: r.id, name: r.name, anniversary_date: r.anniversary_date || null, members: [] }; await withMembers(roomObj); setRoom(roomObj); return roomObj; } } catch {}
+				// 2) 持有 token（成员设备）→ 用 token 直接进
+				if (getToken()) {
+					try { const r = await rpc("rooms.get", {}); if (r && r.id) { const roomObj = { id: r.id, name: r.name, anniversary_date: r.anniversary_date || null, members: [] }; await withMembers(roomObj); setRoom(roomObj); return roomObj; } } catch {}
+				}
 				setRoom(null); return null;
 			}
+			// rooms.* 的 roomOut 只给 member_count，成员明细要单独调 rooms.members
+			async function withMembers(roomObj) { try { const m = await rpc("rooms.members", {}); if (m && Array.isArray(m.members)) roomObj.members = m.members; } catch {} }
 
 			async function refreshAll() {
 				await loadStatus();
@@ -144,6 +151,16 @@ window.__ModuleLoader__.load({
 
 			// ---- 房间 ----
 			function createRoom() { void rpc("rooms.create", { clientId: CLIENT_ID, name: (newRoomName || "").trim() }).then(() => refreshAll()).catch((e) => fail(e)); }
+			function bindRoom() {
+				const token = (joinToken || "").trim();
+				if (!token) { fail("请粘贴另一半发给你的 Token"); return; }
+				void rpc("rooms.bind", { token, clientId: CLIENT_ID }).then(() => {
+					saveToken(token); // bind 响应不带 token，用刚验证过的那份
+					setJoinToken("");
+					ok("已加入房间");
+					refreshAll();
+				}).catch((e) => fail(e));
+			}
 			function copyToken() { const t = getToken(); void navigator.clipboard?.writeText(t).then(() => ok("Token 已复制")).catch(() => {}); }
 
 			// ---- 主题 ----
@@ -208,15 +225,26 @@ window.__ModuleLoader__.load({
 				el(" ", null), Btn("记一笔", quickRecord),
 
 				recent.length > 0 && SectionTitle("最近记忆"),
-				...recent.map((m) => { const t = (m.text || "").trim(); return el("div", { key: m.id, style: { fontSize: 13 } }, `${fmtTime(m.recorded_at)} · ${m.content_type}${t ? " · “" + t.slice(0, 48) + (t.length > 48 ? "…" : "") : ""}`); }),
+				...recent.map((m) => {
+					const t = (m.text || "").trim();
+					const summary = t ? " · “" + t.slice(0, 48) + (t.length > 48 ? "…" : "") : "";
+					const mark = m.content_type === "image" ? "🖼️" : m.content_type === "audio" ? "🎤" : "";
+					return el("div", { key: m.id, style: { fontSize: 13, display: "flex", alignItems: "center", gap: 6 } },
+						m.content_type === "image" && m.media_path ? el("img", { src: mediaUrl(m.media_path), style: { width: 28, height: 28, objectFit: "cover", borderRadius: 4, flex: "0 0 auto" } }) : null,
+						`${fmtTime(m.recorded_at)} ${mark}${summary}`);
+				}),
 
 				SectionTitle("房间与绑定"),
 				room === null && el("div", { style: { fontSize: 13 } },
 					Inp({ value: newRoomName, onChange: (e) => setNewRoomName(e.target.value), placeholder: "房间名" }),
-					el(" ", null), Btn("创建房间（我是房主）", createRoom)
+					el(" ", null), Btn("创建房间（我是房主）", createRoom),
+					el("div", { style: { margin: "8px 0", fontSize: 12, opacity: 0.7 } }, "—— 或加入已有房间 ——"),
+					Inp({ value: joinToken, onChange: (e) => setJoinToken(e.target.value), placeholder: "粘贴另一半发给你的 Token（64 位）" }),
+					el(" ", null), Btn("加入房间", bindRoom)
 				),
 				room !== null && el("div", { style: { fontSize: 13 } },
 					el("b", null, room.name || ""), ` · ${((room.members || []).length)} 位成员`,
+					room.anniversary_date ? ` · 💕 纪念日 ${room.anniversary_date}` : null,
 					...(room.members || []).map((u) => el("span", { key: u.nickname + (u.role || "") }, ` [${u.nickname || "?"}${u.role === "owner" ? "(我)" : ""}]`))
 				),
 				getToken() && el("div", { style: { fontSize: 12, opacity: 0.8 } },
