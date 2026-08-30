@@ -258,4 +258,5 @@ function apply(ctx, config) {
 	ctx.effect(() => () => { closeDb(); ctx.logger?.info?.("[only-room-admin] disposed, db closed"); }, "only-room-admin: dispose closes the database");
 }
 
-export { Config, apply, name };
+const inject = ["webServer"];
+export { Config, apply, inject, name };
